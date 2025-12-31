@@ -131,7 +131,7 @@
                         <div class="input-group">
                             <label>Proof / Receipt</label>
                             <!-- Custom File Input -->
-                            <input type="file" id="file-input" accept="image/*" style="display:none"
+                            <input type="file" id="file-input" accept="image/*,application/pdf" style="display:none"
                                 onchange="app.handleFileSelect(event)">
                             <div id="preview-container" onclick="document.getElementById('file-input').click()">
                                 <div class="upload-hint">
@@ -397,7 +397,8 @@
 
                     <div class="input-group">
                         <label>Update Proof (Optional)</label>
-                        <input type="file" id="edit-image" accept="image/*" onchange="app.handleEditFile(event)"
+                        <input type="file" id="edit-image" accept="image/*,application/pdf"
+                            onchange="app.handleEditFile(event)"
                             style="padding:8px; background:var(--surface-light); border-radius:8px;">
                         <div id="edit-img-preview" style="display:none; margin-top:8px;">
                             <img src=""
