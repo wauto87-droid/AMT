@@ -5,7 +5,7 @@
 
 // CONFIGURATION
 // msg: Replace with your deployed Web App URL (executing as 'Me', access 'Anyone')
-const BACKEND_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyiLs10l_ZzEg9pkaksE2iZMti4q7NGSL-9Kzjv-4v7qZfnikiNCBWQgJT_UEU4HJ3r2g/exec';
 
 // Polyfill google.script.run if not present
 if (typeof google === 'undefined') {
