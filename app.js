@@ -5,7 +5,7 @@
 
 // CONFIGURATION
 // msg: Replace with your deployed Web App URL (executing as 'Me', access 'Anyone')
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbxandrjDbIiNkLvQZKLDbEGNwp8ba1erxj3G4bWeTDTFHqW72-lmfdOVY_py-cnEKR5FQ/exec';
+const BACKEND_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
 
 // Polyfill google.script.run if not present
 if (typeof google === 'undefined') {
@@ -351,23 +351,55 @@ const app = {
         const file = event.target.files[0];
         if (!file) return;
 
-        // Basic size check (e.g. warn if > 5MB, though we compress anyway)
+        // Valid types
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!validTypes.includes(file.type)) {
+            alert("Please upload an image or PDF.");
+            return;
+        }
 
         const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                this.compressImage(img);
+
+        if (file.type === 'application/pdf') {
+            // PDF HANDLING
+            reader.onload = (e) => {
+                this.state.compressedImage = e.target.result; // Keep raw PDF Data URL
+
+                // PDF Preview UI
+                const previewImg = document.getElementById('preview-img');
+                previewImg.style.display = 'none';
+
+                const container = document.getElementById('preview-container');
+                let pdfPrev = document.getElementById('pdf-preview-icon');
+                if (!pdfPrev) {
+                    pdfPrev = document.createElement('div');
+                    pdfPrev.id = 'pdf-preview-icon';
+                    pdfPrev.style.textAlign = 'center';
+                    pdfPrev.innerHTML = '<span style="font-size:40px;">📄</span><div style="font-size:12px; margin-top:4px; color:#fff;">PDF Selected</div>';
+                    container.appendChild(pdfPrev);
+                }
+                pdfPrev.style.display = 'block';
+                document.querySelector('.upload-hint').style.display = 'none';
             };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+            reader.readAsDataURL(file);
+
+        } else {
+            // IMAGE HANDLING
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    this.compressImage(img);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
     },
 
     compressImage: function (img) {
-        // Max dimensions
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
+        // IMPROVED QUALITY: 1600px Max, 0.85 Quality
+        const MAX_WIDTH = 1600;
+        const MAX_HEIGHT = 1600;
         let width = img.width;
         let height = img.height;
 
@@ -389,8 +421,8 @@ const app = {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Compress to JPEG 0.7 quality
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        // Compress to JPEG 0.85 quality (High Clarity)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
         this.state.compressedImage = dataUrl;
 
@@ -398,6 +430,11 @@ const app = {
         const previewImg = document.getElementById('preview-img');
         previewImg.src = dataUrl;
         previewImg.style.display = 'block';
+
+        // Hide PDF icon if present
+        const pdfPrev = document.getElementById('pdf-preview-icon');
+        if (pdfPrev) pdfPrev.style.display = 'none';
+
         document.querySelector('.upload-hint').style.display = 'none';
     },
 
@@ -405,6 +442,10 @@ const app = {
         this.state.compressedImage = null;
         document.getElementById('preview-img').style.display = 'none';
         document.getElementById('preview-img').src = '';
+
+        const pdfPrev = document.getElementById('pdf-preview-icon');
+        if (pdfPrev) pdfPrev.style.display = 'none';
+
         document.querySelector('.upload-hint').style.display = 'block';
     },
 
@@ -485,10 +526,15 @@ const app = {
 
                 const tr = document.createElement('tr');
 
-                // Proof Link Logic
-                const proofIcon = item.image
-                    ? `<a href="${item.image}" target="_blank" style="text-decoration:none; margin-left:8px;" title="View Proof">🖼️</a>`
-                    : '';
+                // Proof Link Logic - Support PDF
+                let proofIcon = '';
+                if (item.image) {
+                    if (item.image.includes('application/pdf')) {
+                        proofIcon = `<a href="${item.image}" target="_blank" style="text-decoration:none; margin-left:8px;" title="View PDF">📄</a>`;
+                    } else {
+                        proofIcon = `<a href="${item.image}" target="_blank" style="text-decoration:none; margin-left:8px;" title="View Proof">🖼️</a>`;
+                    }
+                }
 
                 tr.innerHTML = `
                     <td style="font-size:12px;">${item.date}</td>
@@ -582,27 +628,59 @@ const app = {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (evt) => {
-            const img = new Image();
-            img.onload = () => {
-                // Quick Reuse of compression logic
-                const canvas = document.createElement('canvas');
-                let w = img.width, h = img.height;
-                if (w > h) { if (w > 800) { h *= 800 / w; w = 800; } }
-                else { if (h > 800) { w *= 800 / h; h = 800; } }
 
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        if (file.type === 'application/pdf') {
+            reader.onload = (evt) => {
+                this.state.editImage = evt.target.result;
+                // PDF Preview for Edit
+                const preview = document.querySelector('#edit-img-preview'); // Container
+                const img = preview.querySelector('img');
+                img.style.display = 'none';
 
-                this.state.editImage = dataUrl;
-                const preview = document.querySelector('#edit-img-preview img');
-                if (preview) preview.src = dataUrl;
-                document.getElementById('edit-img-preview').style.display = 'block';
+                let pdfIcon = preview.querySelector('.pdf-icon');
+                if (!pdfIcon) {
+                    pdfIcon = document.createElement('div');
+                    pdfIcon.className = 'pdf-icon';
+                    pdfIcon.innerHTML = '📄 PDF';
+                    pdfIcon.style.cssText = "font-size:12px; text-align:center; padding:10px; color:#fff;";
+                    preview.appendChild(pdfIcon);
+                }
+                pdfIcon.style.display = 'block';
+                preview.style.display = 'block';
             };
-            img.src = evt.target.result;
+            reader.readAsDataURL(file);
+        } else {
+            // Image
+            reader.onload = (evt) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    // IMPROVED EDIT QUALITY
+                    let w = img.width, h = img.height;
+                    const MAX = 1600;
+                    if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+                    else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+                    this.state.editImage = dataUrl;
+
+                    const preview = document.getElementById('edit-img-preview');
+                    const previewImg = preview.querySelector('img');
+                    previewImg.src = dataUrl;
+                    previewImg.style.display = 'block';
+
+                    const pdfIcon = preview.querySelector('.pdf-icon');
+                    if (pdfIcon) pdfIcon.style.display = 'none';
+
+                    preview.style.display = 'block';
+                };
+                img.src = evt.target.result;
+            }
+            reader.readAsDataURL(file);
         }
-        reader.readAsDataURL(file);
     },
 
     saveEdit: function () {
@@ -755,7 +833,12 @@ const app = {
             // We just need to ensure the element exists.
 
             // Trigger Print
-            window.print();
+            // Trigger Print with Class Toggle
+            document.body.classList.add('printing-report');
+            setTimeout(() => {
+                window.print();
+                document.body.classList.remove('printing-report');
+            }, 100);
 
             // Reset Button
             btn.textContent = oldText;
@@ -1569,4 +1652,3 @@ const app = {
 window.onload = function () {
     app.init();
 };
-
