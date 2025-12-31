@@ -835,15 +835,19 @@ const app = {
             // Trigger Print
             // Trigger Print with Class Toggle
             document.body.classList.add('printing-report');
+
+            // Wait for DOM to update
             setTimeout(() => {
                 window.print();
-                document.body.classList.remove('printing-report');
-            }, 100);
-
-            // Reset Button
-            btn.textContent = oldText;
-            btn.disabled = false;
-            this.showToast("Export initiated", "success");
+                // Remove class after print dialog closes (or 500ms if non-blocking)
+                setTimeout(() => {
+                    document.body.classList.remove('printing-report');
+                    // Reset Button
+                    btn.textContent = oldText;
+                    btn.disabled = false;
+                    this.showToast("Export initiated", "success");
+                }, 500);
+            }, 500);
 
         } catch (e) {
             console.error(e);
@@ -1410,8 +1414,13 @@ const app = {
         document.body.classList.add('printing-analytics');
         // Ensure charts are rendered
         this.loadAnalytics();
-        window.print();
-        document.body.classList.remove('printing-analytics');
+
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+                document.body.classList.remove('printing-analytics');
+            }, 500);
+        }, 500);
     },
 
     /* --- ADMIN REPORTS --- */
@@ -1479,8 +1488,12 @@ const app = {
             });
 
             document.body.classList.add('printing-report');
-            window.print();
-            document.body.classList.remove('printing-report');
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => {
+                    document.body.classList.remove('printing-report');
+                }, 500);
+            }, 500);
 
         } catch (e) {
             console.error(e);
